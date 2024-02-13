@@ -11,6 +11,8 @@ import (
 	"regexp"
 )
 
+var version, gitcommit string
+
 type redirectPattern struct {
 	dest string
 }
@@ -78,12 +80,15 @@ func redirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	patterns = map[string]redirectPattern{}
-
+	versionFlag := flag.Bool("version", false, "Show version")
 	path := flag.String("csv", "", "Redirect list CSV file path")
 	port := flag.Int("port", 8080, "Listening TCP port number")
 	flag.Parse()
 
+	if *versionFlag {
+		fmt.Printf("%s (rev:%s)\n", version, gitcommit)
+		os.Exit(0)
+	}
 	if err := parseCSV(*path); err != nil {
 		log.Fatal("parseCSV: ", err)
 	}
