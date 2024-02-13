@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+
+	_ "go.uber.org/automaxprocs"
 )
 
 var version, gitcommit string
