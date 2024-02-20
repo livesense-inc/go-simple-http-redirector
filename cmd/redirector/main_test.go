@@ -103,7 +103,7 @@ func TestRedirect(t *testing.T) {
 		"http://before/piyo?z=1":    "", // default rule is not defined for this path
 
 	}
-	for requestURL, _ := range expected {
+	for requestURL := range expected {
 		req, err := http.NewRequest("GET", requestURL, nil)
 		if err != nil {
 			t.Fatal(err)
