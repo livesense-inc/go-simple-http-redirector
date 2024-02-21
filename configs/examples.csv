@@ -1,2 +1,12 @@
 https://before/hoge,https://after/yo
+https://before/hoge?a=1,https://after/yo?z=1
+"https://before/hoge?a=2","https://after/yo?z=2"
+https://before/hoge?b=2,https://after/yo?z=2
+https://before/hoge?a=1&b=2,https://after/yo?z=3
+https://before/hoge?a=1&b=2,https://after/yo?z=4
+https://before/hoge?b=2&a=1,https://after/yo?z=5
+https://before/hoge?a=3&b=4&c=5,https://after/yo?z=6
+https://before/hoge?a=3&b=4,https://after/yo?z=7
 http://before/fuga,https://after/dir/hey
+http://before/piyo?a=1,https://after/dir/dir/hey
+https://anotherdomain/hoge,https://another/yo
