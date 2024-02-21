@@ -189,7 +189,9 @@ func redirect(w http.ResponseWriter, r *http.Request) {
 func health(w http.ResponseWriter, r *http.Request) {
 	// return 200 OK
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	if _, err := w.Write([]byte("OK")); err != nil {
+		logger.Error(fmt.Sprintf("Response to client returns error: %s", err))
+	}
 
 	var logURL string
 	if r.URL.RawQuery == "" {
