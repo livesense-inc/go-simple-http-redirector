@@ -225,7 +225,7 @@ func main() {
 	}))
 
 	versionFlag := flag.Bool("version", false, "Show version")
-	path := flag.String("csv", "", "Redirect list CSV file path")
+	csvPath := flag.String("csv", "", "Redirect list CSV file path")
 	port := flag.Int("port", 8080, "Listening TCP port number")
 	logLevelString := flag.String("loglevel", "info", "Log level (debug, info, warn, error)")
 	flag.Parse()
@@ -248,7 +248,12 @@ func main() {
 	logger.Info(fmt.Sprintf("redirector version: %s (rev:%s)", version, gitcommit))
 
 	redirectRules = NewRedirectRules()
-	if err := parseCSV(*path); err != nil {
+	if *csvPath == "" {
+		logger.Error("csv option is required")
+		flag.Usage()
+		os.Exit(1)
+	}
+	if err := parseCSV(*csvPath); err != nil {
 		logger.Error(fmt.Sprintf("parseCSV: %s", err))
 		os.Exit(1)
 	}

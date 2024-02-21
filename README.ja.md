@@ -19,6 +19,32 @@ https://before/hoge?a=1,https://after/yo?z=1
 
 [設定例](./configs/examples.csv)をご覧ください。
 
+## 起動方法
+
+設定ファイルとなるCSVファイルを用意してください。
+
+以下のように起動します。
+
+```bash
+redirector -csv CSVFILE
+```
+
+その他のオプションについてはヘルプを見て下さい。
+
+```bash
+$ redirector -help
+
+Usage of redirector:
+  -csv string
+    	Redirect list CSV file path
+  -loglevel string
+    	Log level (debug, info, warn, error) (default "info")
+  -port int
+    	Listening TCP port number (default 8080)
+  -version
+    	Show version
+```
+
 ## リダイレクトルールについて
 
 - リクエストのGETクエリのセットが、リダイレクトルールのクエリのセットと完全マッチするルールを返答
