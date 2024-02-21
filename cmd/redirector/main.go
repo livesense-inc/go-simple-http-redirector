@@ -5,15 +5,17 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 
-	_ "go.uber.org/automaxprocs"
+	"golang.org/x/exp/slog"
+
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 var version, gitcommit string
+var logger *slog.Logger
 
 type RedirectRule struct {
 	beforeHost  string
@@ -56,7 +58,7 @@ func (rrs *RedirectRules) AddRedirectRule(src, dest string) error {
 	key := srcURL.Host + srcURL.Path
 	rrs.Rules[key] = append(rrs.Rules[key], rule)
 
-	fmt.Printf("AddRedirectRule: %s + %v -> %s\n", key, rule.beforeQuery, rule.afterURL)
+	logger.Debug(fmt.Sprintf("Add RedirectRule: %s + %v -> %s", key, rule.beforeQuery, rule.afterURL))
 	return nil
 }
 
@@ -72,7 +74,7 @@ func (rrs *RedirectRules) GetRedirectLocation(req *http.Request) (dest string, e
 	for _, p := range rules {
 		if len(p.beforeQuery) == 0 && dest == "" {
 			// if no queries, set this Rule as default redirect
-			log.Printf("-- default dest found: '%s'\n", p.afterURL)
+			logger.Debug(fmt.Sprintf("-- default dest found: '%s'", p.afterURL))
 			dest = p.afterURL
 		}
 
@@ -87,7 +89,7 @@ func (rrs *RedirectRules) GetRedirectLocation(req *http.Request) (dest string, e
 			for _, v := range reqQueryValues {
 				if p.beforeQuery.Get(reqQueryKey) == v {
 					matchCount++
-					log.Printf("-- query match: '%s: %s (matched: %d)'\n", reqQueryKey, v, matchCount)
+					logger.Debug(fmt.Sprintf("-- query match: '%s: %s (matched: %d)'", reqQueryKey, v, matchCount))
 					break
 				}
 			}
@@ -97,15 +99,15 @@ func (rrs *RedirectRules) GetRedirectLocation(req *http.Request) (dest string, e
 			continue
 		}
 		if matchCount < len(p.beforeQuery) {
-			log.Printf("-- this rule is ignored because it does not meet the number of queries required: '%s%s?%v' -> '%s'\n", p.beforeHost, p.beforePath, p.beforeQuery, p.afterURL)
+			logger.Debug(fmt.Sprintf("-- this rule is ignored because it does not meet the number of queries required: '%s%s?%v' -> '%s'", p.beforeHost, p.beforePath, p.beforeQuery, p.afterURL))
 			continue
 		}
 		if matchCount == maxMatchCount {
-			log.Printf("-- this rule is ignored because there is rule with higher priority: '%s%s?%v' -> '%s'\n", p.beforeHost, p.beforePath, p.beforeQuery, p.afterURL)
+			logger.Debug(fmt.Sprintf("-- this rule is ignored because there is rule with higher priority: '%s%s?%v' -> '%s'", p.beforeHost, p.beforePath, p.beforeQuery, p.afterURL))
 		} else if matchCount > maxMatchCount {
 			maxMatchCount = matchCount
 			dest = p.afterURL
-			log.Printf("-- update dest: '%s' (matched total: %d)\n", dest, matchCount)
+			logger.Debug(fmt.Sprintf("-- update dest: '%s' (matched total: %d)", dest, matchCount))
 		}
 	}
 
@@ -130,40 +132,102 @@ func parseCSV(path string) error {
 			break
 		}
 		if len(records) < 2 {
-			log.Printf("invalid row format: %v(line:%d)\n", records, i)
+			logger.Error(fmt.Sprintf("invalid row format: %v(line:%d)", records, i))
 			continue
 		}
 
 		// if records has more than 2 columns, ignore after the 3rd column
 		if err := redirectRules.AddRedirectRule(records[0], records[1]); err != nil {
-			log.Printf("invalid format: %s (line:%d)\n", err.Error(), i)
+			logger.Error(fmt.Sprintf("invalid format: %s (line:%d)", err.Error(), i))
 			continue
 		}
 		validLineNum++
 	}
 
-	log.Printf("%d configurations loaded from CSV", validLineNum)
+	logger.Info(fmt.Sprintf("%d configurations loaded from CSV", validLineNum))
 	return nil
 }
 
 func redirect(w http.ResponseWriter, r *http.Request) {
-	log.Printf("request: '%s%s?%s'\n", r.Host, r.URL.Path, r.URL.RawQuery)
-	// rebuild request URL
-	dest, err := redirectRules.GetRedirectLocation(r)
-	if err != nil {
-		http.NotFound(w, r)
-		log.Printf("not found: %s %s %s", r.URL.Host, r.URL.Path, r.URL.RawQuery)
-		return
+	logger.Debug(fmt.Sprintf("request: '%s%s?%s'", r.Host, r.URL.Path, r.URL.RawQuery))
+
+	var logMsg string
+	var logStatusCode int
+	var logURL string
+	if r.URL.RawQuery == "" {
+		logURL = r.URL.Path
+	} else {
+		logURL = fmt.Sprintf("%s?%s", r.URL.Path, r.URL.RawQuery)
 	}
 
-	http.Redirect(w, r, dest, 301)
-	log.Printf("redirected: '%s%s?%s' -> '%s'", r.Host, r.URL.Path, r.URL.RawQuery, dest)
+	dest, err := redirectRules.GetRedirectLocation(r)
+	if err != nil || dest == "" {
+		http.NotFound(w, r)
+		logMsg = "not found"
+		logStatusCode = http.StatusNotFound
+	} else {
+		http.Redirect(w, r, dest, http.StatusMovedPermanently)
+		logMsg = "redirected"
+		logStatusCode = http.StatusMovedPermanently
+	}
+
+	logger.Info(
+		logMsg,
+		"method", r.Method,
+		"status_code", logStatusCode,
+		"host", r.Host,
+		"url", logURL,
+		"location", dest,
+		"remote_addr", r.RemoteAddr,
+		"x_forwarded_for", r.Header.Get("X-Forwarded-For"),
+		"x_forwarded_proto", r.Header.Get("X-Forwarded-Proto"),
+		"referer", r.Referer(),
+		"user_agent", r.UserAgent(),
+	)
+}
+
+func health(w http.ResponseWriter, r *http.Request) {
+	// return 200 OK
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+
+	var logURL string
+	if r.URL.RawQuery == "" {
+		logURL = r.URL.Path
+	} else {
+		logURL = fmt.Sprintf("%s?%s", r.URL.Path, r.URL.RawQuery)
+	}
+	logger.Debug(
+		"health check OK",
+		"method", r.Method,
+		"status_code", http.StatusOK,
+		"host", r.Host,
+		"url", logURL,
+		"location", "",
+		"remote_addr", r.RemoteAddr,
+		"x_forwarded_for", r.Header.Get("X-Forwarded-For"),
+		"x_forwarded_proto", r.Header.Get("X-Forwarded-Proto"),
+		"referer", r.Referer(),
+		"user_agent", r.UserAgent(),
+	)
 }
 
 func main() {
+	logLevel := new(slog.LevelVar)
+	ops := slog.HandlerOptions{
+		Level: logLevel,
+	}
+	logger = slog.New(slog.NewJSONHandler(os.Stdout, &ops))
+
+	// Set GOMAXPROCS to the number of CPUs available
+	maxprocs.Set(maxprocs.Logger(func(format string, v ...interface{}) {
+		logger.Info(fmt.Sprintf(format, v...))
+	}))
+
 	versionFlag := flag.Bool("version", false, "Show version")
 	path := flag.String("csv", "", "Redirect list CSV file path")
 	port := flag.Int("port", 8080, "Listening TCP port number")
+	logLevelString := flag.String("loglevel", "info", "Log level (debug, info, warn, error)")
 	flag.Parse()
 
 	if *versionFlag {
@@ -171,16 +235,32 @@ func main() {
 		os.Exit(0)
 	}
 
+	switch *logLevelString {
+	case "debug":
+		logLevel.Set(slog.LevelDebug)
+	case "info":
+		logLevel.Set(slog.LevelInfo)
+	case "warn":
+		logLevel.Set(slog.LevelWarn)
+	case "error":
+		logLevel.Set(slog.LevelError)
+	}
+	logger.Info(fmt.Sprintf("redirector version: %s (rev:%s)", version, gitcommit))
+
 	redirectRules = NewRedirectRules()
 	if err := parseCSV(*path); err != nil {
-		log.Fatal("parseCSV: ", err)
+		logger.Error(fmt.Sprintf("parseCSV: %s", err))
+		os.Exit(1)
 	}
-	log.Printf("%d redirect parameters applied.", len(redirectRules.Rules))
+	logger.Info(fmt.Sprintf("%d redirect parameters applied.", len(redirectRules.Rules)))
 
+	http.HandleFunc("/health", health)
 	http.HandleFunc("/", redirect)
-	log.Printf("Listening on :%d\n", *port)
+
+	logger.Info(fmt.Sprintf("Listening on :%d", *port))
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		logger.Error(fmt.Sprintf("ListenAndServe: %s", err))
+		os.Exit(1)
 	}
 }
