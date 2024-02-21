@@ -248,6 +248,10 @@ func main() {
 		logLevel.Set(slog.LevelWarn)
 	case "error":
 		logLevel.Set(slog.LevelError)
+	default:
+		logger.Error(fmt.Sprintf("invalid log level: %s", *logLevelString))
+		flag.Usage()
+		os.Exit(1)
 	}
 	logger.Info(fmt.Sprintf("redirector version: %s (rev:%s)", version, gitcommit))
 
