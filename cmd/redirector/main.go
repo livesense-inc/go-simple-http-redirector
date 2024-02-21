@@ -222,9 +222,11 @@ func main() {
 	logger = slog.New(slog.NewJSONHandler(os.Stdout, &ops))
 
 	// Set GOMAXPROCS to the number of CPUs available
-	maxprocs.Set(maxprocs.Logger(func(format string, v ...interface{}) {
+	if _, err := maxprocs.Set(maxprocs.Logger(func(format string, v ...interface{}) {
 		logger.Info(fmt.Sprintf(format, v...))
-	}))
+	})); err != nil {
+		logger.Warn("Setting GOMAXPROCS failed: %s", err)
+	}
 
 	versionFlag := flag.Bool("version", false, "Show version")
 	csvPath := flag.String("csv", "", "Redirect list CSV file path")
