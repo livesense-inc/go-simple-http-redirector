@@ -19,6 +19,32 @@ The `before` and `after` strings should include the scheme.
 
 See [example](./configs/examples.csv).
 
+## Quick start
+
+Please prepare a CSV file, which is a configuration file.
+
+Execute it.
+
+```bash
+redirector -csv CSVFILE
+```
+
+See help for other options.
+
+```bash
+$ redirector -help
+
+Usage of redirector:
+  -csv string
+    	Redirect list CSV file path
+  -loglevel string
+    	Log level (debug, info, warn, error) (default "info")
+  -port int
+    	Listening TCP port number (default 8080)
+  -version
+    	Show version
+```
+
 ## About Redirect Rules
 
 - Return a location where the set of GET queries in the request exactly matches the set of queries in the redirect rule.

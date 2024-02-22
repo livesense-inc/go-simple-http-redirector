@@ -5,9 +5,22 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"golang.org/x/exp/slog"
 )
 
+func initLogger() {
+	logLevel := new(slog.LevelVar)
+	ops := slog.HandlerOptions{
+		Level: logLevel,
+	}
+	logger = slog.New(slog.NewJSONHandler(os.Stdout, &ops))
+	logLevel.Set(slog.LevelError)
+}
+
 func TestParseCSV(t *testing.T) {
+	initLogger()
+
 	// Create a temporary CSV file for testing
 	tmpfile, err := os.CreateTemp("", "test.csv")
 	if err != nil {
@@ -56,6 +69,8 @@ func TestParseCSV(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
+	initLogger()
+
 	redirectRules = NewRedirectRules()
 	if err := parseCSV("../../configs/examples.csv"); err != nil {
 		t.Fatal("parseCSV: ", err)
@@ -114,6 +129,28 @@ func TestRedirect(t *testing.T) {
 		// Check the response status code
 		if rr.Code != http.StatusNotFound {
 			t.Errorf("expected status code %d, got %d", http.StatusNotFound, rr.Code)
+		}
+	}
+}
+
+func TestHealth(t *testing.T) {
+	initLogger()
+
+	expected := map[string]int{
+		"https://before/health":     http.StatusOK,
+		"https://notdefined/health": http.StatusOK,
+	}
+	for requestURL, expectedStatus := range expected {
+		req, err := http.NewRequest("GET", requestURL, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rr := httptest.NewRecorder()
+		health(rr, req)
+
+		// Check the response status code
+		if rr.Code != expectedStatus {
+			t.Errorf("expected status code %d, got %d", expectedStatus, rr.Code)
 		}
 	}
 }
