@@ -1,12 +1,11 @@
 package main
 
 import (
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
-
-	"golang.org/x/exp/slog"
 )
 
 func initLogger() {
