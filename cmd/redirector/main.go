@@ -5,11 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
-
-	"golang.org/x/exp/slog"
 
 	"go.uber.org/automaxprocs/maxprocs"
 )
