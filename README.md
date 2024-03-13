@@ -1,6 +1,7 @@
 # go-simple-http-redirector
 
 [![Test](https://github.com/livesense-inc/go-simple-http-redirector/actions/workflows/test.yml/badge.svg)](https://github.com/livesense-inc/go-simple-http-redirector/actions/workflows/test.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/livesense-inc/go-simple-http-redirector)](https://goreportcard.com/report/github.com/livesense-inc/go-simple-http-redirector)
 
 Redirect HTTP requests to specific URI.
 
