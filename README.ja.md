@@ -1,5 +1,7 @@
 # go-simple-http-redirector
 
+[![Test](https://github.com/livesense-inc/go-simple-http-redirector/actions/workflows/test.yml/badge.svg)](https://github.com/livesense-inc/go-simple-http-redirector/actions/workflows/test.yml)
+
 HTTPリクエストを特定のURIにリダイレクトします。
 
 リダイレクトルールはCSVファイルで設定可能で、大量のリダイレクト設定が必要なケースに向いています。
