@@ -224,7 +224,7 @@ func main() {
 	if _, err := maxprocs.Set(maxprocs.Logger(func(format string, v ...interface{}) {
 		logger.Info(fmt.Sprintf(format, v...))
 	})); err != nil {
-		logger.Warn("Setting GOMAXPROCS failed: %s", err)
+		logger.Warn("Setting GOMAXPROCS failed", "error", err)
 	}
 
 	versionFlag := flag.Bool("version", false, "Show version")
