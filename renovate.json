@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base",
+    "config:recommended",
     ":timezone(Asia/Tokyo)",
     ":prHourlyLimitNone",
     ":dependencyDashboard"
@@ -20,13 +20,13 @@
   "automerge": true,
   "packageRules": [
     {
-      "matchPackagePatterns": [
-        "go"
-      ],
       "matchUpdateTypes": [
         "major"
       ],
-      "automerge": false
+      "automerge": false,
+      "matchPackageNames": [
+        "/go/"
+      ]
     }
   ]
 }
