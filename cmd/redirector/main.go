@@ -121,7 +121,11 @@ func parseCSV(path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			logger.Error(fmt.Sprintf("Error closing file: %s, error: %v", path, cerr))
+		}
+	}()
 
 	validLineNum := 0
 	r := csv.NewReader(f)
