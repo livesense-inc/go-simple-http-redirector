@@ -38,7 +38,7 @@ jobs:
         run: go test -v ./...
 
       - name: Check lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
 
       - name: Check build
         run: |
